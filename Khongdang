@@ -1,0 +1,158 @@
+-- Blox Fruits Ultimate Script with Auto Gun Attack for All Enemies including Sea Events (Optimized for Mobile)
+
+local FastAttackSpeed = 0.1
+local SelectedWeapon = "Combat"
+local autoFarm = false
+local fastAttack = false
+local autoKill = false
+local autoBoss = false
+local autoHaki = false
+local autoQuest = false
+local autoGun = false  -- Thêm tính năng auto gun
+local autoSeaEvent = false  -- Thêm tính năng tự động treo sự kiện
+local TeleportLocation = nil
+local GUIVisible = true
+local maxDistance = 100  -- Bán kính 100m để đánh quái
+
+-- Anti-AFK
+game:GetService("Players").LocalPlayer.Idled:Connect(function()
+    game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    wait(1)
+    game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+end)
+
+local Library = loadstring(game:HttpGet("https://pastebin.com/raw/edJT9EGX"))()
+local Window = Library:CreateWindow("Blox Fruits Hub", Vector2.new(300, 500))  -- Giảm kích thước cửa sổ cho điện thoại
+local Tab = Window:CreateTab("Main")
+local Section = Tab:CreateSection("Auto Features")
+
+Section:CreateToggle("Auto Farm", false, function(val) autoFarm = val end)
+Section:CreateToggle("Fast Attack", false, function(val) fastAttack = val end)
+Section:CreateSlider("Fast Attack Speed", 0.001, 1, 0.1, function(val) FastAttackSpeed = val end)
+Section:CreateToggle("Auto Kill Nearest", false, function(val) autoKill = val end)
+Section:CreateToggle("Auto Kill All Enemies in 100m", false, function(val) autoKill = val end)
+Section:CreateToggle("Auto Kill All Bosses", false, function(val) autoBoss = val end)
+Section:CreateToggle("Auto Haki + Buso", false, function(val) autoHaki = val end)
+Section:CreateToggle("Auto Quest", false, function(val) autoQuest = val end)
+Section:CreateToggle("Auto Gun Attack", false, function(val) autoGun = val end)  -- Tính năng bắn súng tự động
+Section:CreateToggle("Auto Sea Event", false, function(val) autoSeaEvent = val end)  -- Tính năng tự động treo sự kiện
+
+-- Weapon Selection
+Section:CreateDropdown("Select Weapon", {"Combat", "Katana", "Cutlass", "Iron Mace", "Triple Katana", "Gun"}, function(wpn)
+    SelectedWeapon = wpn
+end)
+
+-- Teleport Locations
+local teleportLocations = {
+    ["Jungle"] = CFrame.new(-1337, 11, 495),
+    ["Pirate Village"] = CFrame.new(-1100, 4, 3870),
+    ["Marine Fortress"] = CFrame.new(-4500, 195, 4260),
+    ["Sky Island"] = CFrame.new(-5000, 800, 1500)
+}
+Section:CreateDropdown("Teleport To", {"None", "Jungle", "Pirate Village", "Marine Fortress", "Sky Island"}, function(loc)
+    TeleportLocation = teleportLocations[loc]
+end)
+
+-- Toggle GUI
+Tab:CreateButton("Ẩn/Hiện GUI (Phím RightShift)", function()
+    GUIVisible = not GUIVisible
+    game.CoreGui:FindFirstChild("UILib"):SetAttribute("Visible", GUIVisible)
+end)
+
+-- Function to check if an enemy is within range (100m)
+local function isInRange(enemy)
+    local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+    local enemyPosition = enemy.HumanoidRootPart.Position
+    local distance = (playerPosition - enemyPosition).Magnitude
+    return distance <= maxDistance
+end
+
+-- Logic Loop
+spawn(function()
+    while task.wait(0.1) do
+        if autoFarm then
+            print("Đang farm với vũ khí:", SelectedWeapon)
+            -- Auto farm logic
+        end
+        if autoKill then
+            -- Tự động đánh tất cả quái trong bán kính 100m
+            for _, enemy in pairs(workspace.Enemies:GetChildren()) do
+                if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 and isInRange(enemy) then
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0,2,0)
+                    enemy.Humanoid.Health = 0
+                end
+            end
+        end
+        if autoBoss then
+            -- Tự động đánh tất cả boss
+            for _, enemy in pairs(workspace.Enemies:GetChildren()) do
+                if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 and enemy.Name:find("Boss") then
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0,2,0)
+                    enemy.Humanoid.Health = 0
+                end
+            end
+        end
+        if autoHaki then
+            local lp = game.Players.LocalPlayer
+            if lp.Character and not lp.Character:FindFirstChild("HasBuso") then
+                game:service("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+            end
+        end
+        if autoQuest then
+            -- Tự động nhận nhiệm vụ (ví dụ JungleQuest)
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", "JungleQuest", 1)
+        end
+        if autoSeaEvent then
+            -- Tự động treo các sự kiện Sea Event, ví dụ: Sea King's Attack
+            local seaEvent = game:GetService("ReplicatedStorage"):WaitForChild("SeaEvents"):FindFirstChild("SeaKingAttack")
+            if seaEvent then
+                seaEvent:FireServer()  -- Kích hoạt sự kiện Sea King's Attack tự động
+                print("Tự động treo sự kiện Sea King Attack!")
+            end
+        end
+    end
+end)
+
+-- Logic to enable auto gun attack (spamming the gun)
+spawn(function()
+    while task.wait(0.05) do
+        if autoGun then
+            local player = game.Players.LocalPlayer
+            local character = player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local gun = character:FindFirstChildOfClass("Tool")
+                if gun and gun.Name == "Gun" then
+                    -- Bật auto gun (bắn liên tục vào tất cả quái)
+                    for _, enemy in pairs(workspace.Enemies:GetChildren()) do
+                        if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 and isInRange(enemy) then
+                            gun.Activated:Fire()  -- Lệnh bắn súng
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+spawn(function()
+    while task.wait(FastAttackSpeed) do
+        if fastAttack then
+            print("Fast attack tick at", FastAttackSpeed)
+            -- Thêm logic fast attack ở đây
+        end
+    end
+end)
+
+spawn(function()
+    while task.wait(0.05) do
+        if TeleportLocation then
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = TeleportLocation
+            TeleportLocation = nil
+        end
+    end
+end)
+
+-- Auto respawn
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    print("Đã hồi sinh, tự động kích hoạt lại")
+end)
